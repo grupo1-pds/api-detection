@@ -58,8 +58,9 @@ def process_face(faces, frame):
             age = age_list[age_preds[0].argmax()]
 
             label = f'Age: {age}'
-            cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
-            cv2.putText(frame, label, (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2, cv2.LINE_AA)
+            # cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
+            # cv2.putText(frame, label, (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2, cv2.LINE_AA)
+            return age
         except Exception as e:
             print(f"Erro ao processar a imagem do rosto: {e}")
 
@@ -93,15 +94,15 @@ def camera_feed():
                         print("Queda detectada!")
 
                         
-                        process_face(faces, frame)
+                        age = process_face(faces, frame)
 
                         #Mandar para id do dispositivo
                         '''
                         /notifications/{deviceId}
 
                         '''
-
-                        send_notification(receive_id)
+                        if age == '(60-100)':
+                            send_notification(receive_id)
                         
 
         #     _, buffer = cv2.imencode('.jpg', frame)
