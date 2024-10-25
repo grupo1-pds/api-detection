@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Monitoramento de Quedas</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f0f0f0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    .form-container {
+      background-color: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      width: 300px;
+    }
+
+    .form-container h2 {
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .form-container input {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+
+    .form-container button {
+      width: 100%;
+      padding: 10px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    .form-container button:hover {
+      background-color: #0056b3;
+    }
+  </style>
+</head>
+<body>
+
+<div class="form-container">
+  <h2>Monitoramento de Quedas</h2>
+  <form id="device-form">
+    <input type="text" id="device-id" name="device-id" placeholder="Digite o ID do dispositivo" required>
+    <input type="text" id="server-url" name="server-url" value="http://localhost:3333/camera_feed">
+    <button type="submit">Iniciar Monitoramento</button>
+  </form>
+</div>
+
+<script>
+  document.getElementById('device-form').addEventListener('submit', async (e) => {
+    e.preventDefault(); 
+
+    const deviceId = document.getElementById('device-id').value;
+    const receiveIdUrl = 'http://localhost:3333/receive_id'; 
+    const cameraFeedUrl = document.getElementById('server-url').value;
+
+    try {
+      const receiveIdResponse = await fetch(receiveIdUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: deviceId })
+      });
+
+      const receiveIdResult = await receiveIdResponse.json();
+      if (!receiveIdResponse.ok) {
+        alert('Erro ao enviar ID: ' + receiveIdResult.error);
+        return;
+      }
+
+      alert('ID enviado com sucesso! Iniciando monitoramento...');
+
+      const cameraFeedResponse = await fetch(cameraFeedUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      const cameraFeedResult = await cameraFeedResponse.json();
+
+      if (cameraFeedResponse.ok) {
+        alert('Monitoramento iniciado: ' + cameraFeedResult.message);
+      } else {
+        alert('Erro ao iniciar monitoramento: ' + cameraFeedResult.error);
+      }
+    } catch (error) {
+      console.error('Erro na requisição:', error);
+      alert('Não foi possível conectar ao servidor.');
+    }
+  });
+</script>
+
+</body>
+</html>
