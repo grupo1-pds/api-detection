@@ -4,8 +4,10 @@ import threading
 from ultralytics import YOLO
 from inference_sdk import InferenceHTTPClient
 import requests
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)
 
 CLIENT = InferenceHTTPClient(
     api_url="https://detect.roboflow.com",
@@ -65,7 +67,7 @@ def process_face(faces, frame):
             print(f"Erro ao processar a imagem do rosto: {e}")
 
 
-@app.route('/camera_feed')
+@app.route('/camera_feed', methods=['POST'])
 def camera_feed():
     def generate():
         cap = cv2.VideoCapture(0)  # Captura da câmera
@@ -112,8 +114,8 @@ def camera_feed():
 
         # cap.release()
 
-    return Response(generate(), mimetype='multipart/x-mixed-replace; boundary=frame')
-
+    threading.Thread(target=generate).start() 
+    return jsonify({"message": "Monitoramento iniciado"}), 200
 
 @app.route('/receive_id', methods=['POST'])
 def receive_id():
