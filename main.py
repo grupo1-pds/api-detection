@@ -11,7 +11,7 @@ CORS(app)
 
 CLIENT = InferenceHTTPClient(
     api_url="https://detect.roboflow.com",
-    api_key="P23WgD6oL94DxdKRk7lJ"
+    api_key="KASbyY8hQkoVk1tKqmCc"
 )
 
 # model = YOLO('best.pt')
