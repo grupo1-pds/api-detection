@@ -25,7 +25,7 @@ results = None
 
 
 def send_notification(device_id):
-    url = f"http://localhost:3333/notifications/{device_id}"
+    url = f"http://127.0.0.1:8000/notifications/{device_id}"
     data = {"deviceId": device_id}
     try:
         response = requests.post(url, json=data)
@@ -103,6 +103,7 @@ def camera_feed():
                         /notifications/{deviceId}
 
                         '''
+                        print("CAIU")
                         if age == '(60-100)':
                             send_notification(receive_id)
                         
@@ -121,6 +122,7 @@ def camera_feed():
 def receive_id():
     global received_id
     data = request.get_json()
+    print(data)
     if not data or 'id' not in data:
         return jsonify({'error': 'ID não fornecido'}), 400
 
