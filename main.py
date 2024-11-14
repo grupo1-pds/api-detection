@@ -5,16 +5,17 @@ from ultralytics import YOLO
 from inference_sdk import InferenceHTTPClient
 import requests
 from flask_cors import CORS
+import math
 
 app = Flask(__name__)
 CORS(app)
 
 CLIENT = InferenceHTTPClient(
     api_url="https://detect.roboflow.com",
-    api_key="KASbyY8hQkoVk1tKqmCc"
+    api_key="2kzPu6sygW4lwKlALvLN"
 )
 
-# model = YOLO('best.pt')
+model = YOLO('best.pt')
 
 face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
 age_net = cv2.dnn.readNetFromCaffe('age_deploy.prototxt', 'age_net.caffemodel')
@@ -25,10 +26,18 @@ results = None
 
 
 def send_notification(device_id):
-    url = f"http://127.0.0.1:8000/notifications/{device_id}"
+    url = f"http://localhost:8000/notifications/{device_id}"
+
+    token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MzE4OTAwNjYsInN1YiI6InRlc3RlQHRlc3RlLmNvbSJ9.hJw8REMg1ys30HcP0RkRo3adinLE92VSe3EVrsdcvUY'
+    
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json"
+    }
+
     data = {"deviceId": device_id}
     try:
-        response = requests.post(url, json=data)
+        response = requests.post(url, json=data, headers=headers)
         if response.status_code == 200:
             print(f"Notificação enviada para o dispositivo {device_id}")
         else:
@@ -36,10 +45,11 @@ def send_notification(device_id):
     except Exception as e:
         print(f"Erro ao enviar notificação: {e}")
 
+
 def process_frame(frame):
     global results
-    results = CLIENT.infer(frame, model_id="fall-detection-ca3o8/4")
-    # results = model(frame)
+    # results = CLIENT.infer(frame, model_id="fall-detection-ca3o8/4")
+    results = model(frame)
     # print(results)
 
 
@@ -74,7 +84,9 @@ def camera_feed():
         if not cap.isOpened():
             print("Erro ao acessar a câmera")
             return
-       
+
+
+        classNames = ['Fall-Detected']
         while True:
             ret, frame = cap.read()
             if not ret:
@@ -84,29 +96,35 @@ def camera_feed():
             gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
             faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
 
-            frame = cv2.resize(frame, (320, 240))
+            frame = cv2.resize(frame, (608, 800))
 
-
-            threading.Thread(target=process_frame, args=(frame,)).start()
-
+            results = model.predict(frame)
+            # threading.Thread(target=process_frame, args=(frame,)).start()
+            
             if results:
-                predictions = results.get('predictions', [])
-                for prediction in predictions:
-                    if prediction['class'] == 'Fall-Detected' and prediction['confidence'] >= 0.9:
-                        print("Queda detectada!")
+                for r in results:  
+                    
+                    prediction = r.boxes
+                    for pred in prediction:
 
+                        conf = math.ceil((pred.conf[0] * 100)) / 100
+                        cls = int(pred.cls[0])
+                        current_class = classNames[cls]
+
+                        print(current_class, conf)
+                        if current_class == 'Fall-Detected' and conf >= 0.8:
+                            print("*************Queda detectada!**************")
+                            
+                            age = process_face(faces, frame)
+                            if age == '(60-100)':
+                                send_notification(received_id)
+
+                            break
                         
-                        age = process_face(faces, frame)
-
-                        #Mandar para id do dispositivo
-                        '''
-                        /notifications/{deviceId}
-
-                        '''
-                        print("CAIU")
-                        if age == '(60-100)':
-                            send_notification(receive_id)
-                        
+            # age = process_face(faces,frame)
+            # print(age)
+            # if age == '(60-100)':
+            #     send_notification(receive_id)
 
         #     _, buffer = cv2.imencode('.jpg', frame)
         #     frame_bytes = buffer.tobytes()
@@ -122,7 +140,6 @@ def camera_feed():
 def receive_id():
     global received_id
     data = request.get_json()
-    print(data)
     if not data or 'id' not in data:
         return jsonify({'error': 'ID não fornecido'}), 400
 
