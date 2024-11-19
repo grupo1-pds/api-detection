@@ -6,9 +6,15 @@ from inference_sdk import InferenceHTTPClient
 import requests
 from flask_cors import CORS
 import math
+from dotenv import load_dotenv
+import os
 
 app = Flask(__name__)
 CORS(app)
+
+load_dotenv()
+
+API_URL = os.getenv("API_URL")
 
 CLIENT = InferenceHTTPClient(
     api_url="https://detect.roboflow.com",
@@ -24,20 +30,12 @@ age_list = ['(0-2)', '(4-6)', '(8-12)', '(15-20)', '(25-32)', '(38-43)', '(48-53
 MODEL_MEAN_VALUES = (78.4263377603, 87.7689143744, 114.895847746)
 results = None
 
-
 def send_notification(device_id):
-    url = f"http://localhost:8000/notifications/{device_id}"
-
-    token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MzE4OTAwNjYsInN1YiI6InRlc3RlQHRlc3RlLmNvbSJ9.hJw8REMg1ys30HcP0RkRo3adinLE92VSe3EVrsdcvUY'
-    
-    headers = {
-        "Authorization": f"Bearer {token}",
-        "Content-Type": "application/json"
-    }
+    url = f"{API_URL}/notifications/{device_id}"
 
     data = {"deviceId": device_id}
     try:
-        response = requests.post(url, json=data, headers=headers)
+        response = requests.post(url, json=data)
         if response.status_code == 200:
             print(f"Notificação enviada para o dispositivo {device_id}")
         else:
