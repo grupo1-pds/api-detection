@@ -6,13 +6,15 @@ from inference_sdk import InferenceHTTPClient
 import requests
 from flask_cors import CORS
 import math
-from dotenv import load_dotenv
+# from dotenv import load_dotenv
 import os
+
+import time
 
 app = Flask(__name__)
 CORS(app)
 
-load_dotenv()
+# load_dotenv()
 
 API_URL = os.getenv("API_URL")
 
@@ -30,8 +32,12 @@ age_list = ['(0-2)', '(4-6)', '(8-12)', '(15-20)', '(25-32)', '(38-43)', '(48-53
 MODEL_MEAN_VALUES = (78.4263377603, 87.7689143744, 114.895847746)
 results = None
 
+
+
 def send_notification(device_id):
-    url = f"{API_URL}/notifications/{device_id}"
+    # url = f"{API_URL}/notifications/{device_id}"
+    
+    url = f"http://127.0.0.1:8000/notifications/{device_id}"
 
     data = {"deviceId": device_id}
     try:
@@ -47,7 +53,7 @@ def send_notification(device_id):
 def process_frame(frame):
     global results
     # results = CLIENT.infer(frame, model_id="fall-detection-ca3o8/4")
-    results = model(frame)
+    results = model.predict(frame)
     # print(results)
 
 
@@ -74,10 +80,12 @@ def process_face(faces, frame):
         except Exception as e:
             print(f"Erro ao processar a imagem do rosto: {e}")
 
+notification_enviada = False
 
 @app.route('/camera_feed', methods=['POST'])
 def camera_feed():
     def generate():
+        global notification_enviada
         cap = cv2.VideoCapture(0)  # Captura da câmera
         if not cap.isOpened():
             print("Erro ao acessar a câmera")
@@ -94,10 +102,10 @@ def camera_feed():
             gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
             faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
 
-            frame = cv2.resize(frame, (608, 800))
+            frame = cv2.resize(frame, (600, 800))
 
-            results = model.predict(frame)
-            # threading.Thread(target=process_frame, args=(frame,)).start()
+            # results = model.predict(frame)
+            threading.Thread(target=process_frame, args=(frame,)).start()
             
             if results:
                 for r in results:  
@@ -115,10 +123,13 @@ def camera_feed():
                             
                             age = process_face(faces, frame)
                             if age == '(60-100)':
-                                send_notification(received_id)
+                                if notification_enviada == False:
+                                    notification_enviada = True
+                                    send_notification(received_id)
 
                             break
-                        
+            
+            time.sleep(2)       
             # age = process_face(faces,frame)
             # print(age)
             # if age == '(60-100)':
