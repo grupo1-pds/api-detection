@@ -32,12 +32,10 @@ age_list = ['(0-2)', '(4-6)', '(8-12)', '(15-20)', '(25-32)', '(38-43)', '(48-53
 MODEL_MEAN_VALUES = (78.4263377603, 87.7689143744, 114.895847746)
 results = None
 
-
-
 def send_notification(device_id):
     # url = f"{API_URL}/notifications/{device_id}"
     
-    url = f"http://127.0.0.1:8000/notifications/{device_id}"
+    url = f"http://safeelder.life:8080/notifications/{device_id}"
 
     data = {"deviceId": device_id}
     try:
@@ -82,9 +80,12 @@ def process_face(faces, frame):
 
 notification_enviada = False
 
+last_notification_time = 0
+
 @app.route('/camera_feed', methods=['POST'])
 def camera_feed():
     def generate():
+        global notification_enviada, last_notification_time
         global notification_enviada
         cap = cv2.VideoCapture(0)  # Captura da câmera
         if not cap.isOpened():
@@ -121,15 +122,17 @@ def camera_feed():
                         if current_class == 'Fall-Detected' and conf >= 0.8:
                             print("*************Queda detectada!**************")
                             
-                            age = process_face(faces, frame)
-                            if age == '(60-100)':
-                                if notification_enviada == False:
-                                    notification_enviada = True
+                            current_time = time.time()
+                            if current_time - last_notification_time >= 60:  # 60 segundos
+                                age = process_face(faces, frame)
+                                if age == '(60-100)':  
                                     send_notification(received_id)
-
+                                    last_notification_time = current_time  
+                            else:
+                                print("Notificação ignorada: Dentro do intervalo de 60 segundos")
                             break
             
-            time.sleep(2)       
+            time.sleep(1)       
             # age = process_face(faces,frame)
             # print(age)
             # if age == '(60-100)':
